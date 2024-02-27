@@ -8,7 +8,7 @@ from flask import Flask, redirect, url_for, request, make_response, send_file, j
 app = Flask(__name__)
 
 cors = CORS(app)
-json = FlaskJSON(app)
+myjson = FlaskJSON(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JSON_AS_ASCII'] = False
 app.config['JSON_ADD_STATUS'] = False
@@ -16,7 +16,7 @@ app.config['JSON_ADD_STATUS'] = False
 
 
 cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
-                              host='158.160.19.129',
+                              host='51.250.102.162',
                               database='myDatabase')
 cursor = cnx.cursor()
 
@@ -32,6 +32,8 @@ def register():
     # get passwd for nickname
     cursor.execute(f"select u.user_passwd  from users u \
     WHERE u.user_login ='{nickname}';")
+
+    # get reak user password
     realPasswd=None
     for realPasswd in cursor:
         realPasswd = realPasswd[0]
@@ -45,16 +47,11 @@ def register():
         user_uuid = uuid.uuid4()
         response = {'uuid': f'{str(user_uuid)}'}
 
-
-    elif realPasswd == passwd:
-        user_uuid = uuid.uuid4()
-        response = {'uuid': f'{str(user_uuid)}'}
-
     else:
         response = {
             "success": False,
             "exception": {
-                "message": "Nickname or password is incorrect"
+                "message": "User already exist"
             }
         }
         # return response
@@ -64,8 +61,46 @@ def register():
     # return response
     return response, 200
 
+@app.route('/user/login', methods=['GET'])
+@cross_origin()
+@as_json
+def login():
+    # check parameters
+    nickname = request.args.get('nickname')
+    passwd = request.args.get('password')
+
+    # get passwd for nickname
+    cursor.execute(f"select u.user_passwd  from users u \
+    WHERE u.user_login ='{nickname}';")
+
+    # get real user password
+    realPasswd = None
+    for realPasswd in cursor:
+        realPasswd = realPasswd[0]
 
 
+    if realPasswd == passwd:
+        user_uuid = uuid.uuid4()
+        response = {'uuid': f'{str(user_uuid)}'}
+
+    elif realPasswd == None:
+        response = {
+            "success": False,
+            "exception": {
+                "message": "User not exist"
+            }
+        }
+        # return response
+        return response, 401
+    else:
+        response = {
+            "success": False,
+            "exception": {
+                "message": "password or login is wrong"
+            }
+        }
+        # return response
+        return response, 401
 
 
 
