@@ -1,4 +1,7 @@
 import json
+import create_deck
+from functools import reduce
+from random import shuffle
 import uuid
 import mysql.connector
 from flask_json import FlaskJSON, as_json
@@ -21,6 +24,8 @@ cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
                               host='158.160.84.91',
                               database='myDatabase')
 cursor = cnx.cursor()
+
+
 
 
 '''def token_checker(func):
@@ -159,18 +164,24 @@ def game_start():
     accessToken = request.args.get('accessToken')
 
     # check token
-    cursor.execute(f"select count(*) FROM tokens Where token='{accessToken}';")
+    cursor.execute(f"select nickname FROM tokens Where token='{accessToken}';")
 
-    token_count = None
-    for token_count_arr in cursor:
-        token_count = token_count_arr[0]
+    nickname = cursor.fetchone()[0]
 
-    if token_count and int(token_count) > 0:
+    if nickname:
         # game accessToken
         game_accessToken = uuid.uuid4()
 
+        deck = create_deck.create_deck()
+        print(deck)
+
+        field = deck[:1]
+        deck = deck[80:]
+
+        print(type(field), type(deck))
+
         # create a new game
-        cursor.execute(f"INSERT INTO games (game_accessToken, nickname_1, status ) VALUES ('{game_accessToken}', 'nick', 'starting');")
+        cursor.execute(f"INSERT INTO games (game_accessToken, field, deck, nickname_1, status) Values ('{str(game_accessToken)}', '{str(field)}', '{str(deck)}', '{str(nickname)}', 'starting');")
         cnx.commit()
 
         # return game accessToken
@@ -201,7 +212,7 @@ def game_list():
     # create a new game
     cursor.execute(f"select game_accessToken from games where status = 'starting';")
 
-    dict_game = {'games':[ ]}
+    dict_game = {'games':[]}
 
     # get games from cursor
     for games_arr in cursor:
