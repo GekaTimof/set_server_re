@@ -4,6 +4,9 @@ import mysql.connector
 from flask_json import FlaskJSON, as_json
 from flask_cors import CORS, cross_origin
 from flask import Flask, redirect, url_for, request, make_response, send_file, jsonify
+import set
+import decorators
+
 
 app = Flask(__name__)
 
@@ -21,6 +24,7 @@ cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
 cursor = cnx.cursor()
 
 
+# registration function
 @app.route('/user/register', methods=['GET'])
 @cross_origin()
 @as_json
@@ -33,7 +37,7 @@ def register():
     cursor.execute(f"select u.user_passwd  from users u \
     WHERE u.user_login ='{nickname}';")
 
-    # get reak user password
+    # get real user password
     realPasswd=None
     for realPasswd in cursor:
         realPasswd = realPasswd[0]
@@ -44,8 +48,8 @@ def register():
         # save data in database
         cnx.commit()
 
-        user_uuid = uuid.uuid4()
-        response = {'uuid': f'{str(user_uuid)}'}
+        user_accessToken = uuid.accessToken4()
+        response = {'accessToken': f'{str(user_accessToken)}'}
 
     else:
         response = {
@@ -61,6 +65,8 @@ def register():
     # return response
     return response, 200
 
+
+# logining function
 @app.route('/user/login', methods=['GET'])
 @cross_origin()
 @as_json
@@ -80,8 +86,8 @@ def login():
 
 
     if realPasswd == passwd:
-        user_uuid = uuid.uuid4()
-        response = {'uuid': f'{str(user_uuid)}'}
+        user_accessToken = uuid.accessToken4()
+        response = {'accessToken': f'{str(user_accessToken)}'}
 
     elif realPasswd == None:
         response = {
@@ -101,6 +107,70 @@ def login():
         }
         # return response
         return response, 401
+
+
+# game starting function
+@app.route('/set/room/create', methods=['GET'])
+@cross_origin()
+@as_json
+@token_checker
+def game_start():
+    # game accessToken
+    game_accessToken = uuid.accessToken4()
+
+    # create a new game
+    cursor.execute(f"INSERT INTO games  (game_accessToken) VALUES ('{game_accessToken}');")
+
+    # return game accessToken
+    response = {
+        "success": True,
+        "exception": None,
+        "gameId": game_accessToken
+    }
+
+
+# function to get the list of games
+@app.route('/set/room/list', methods=['GET'])
+@cross_origin()
+@as_json
+@token_checker
+def game_list():
+    # create a new game
+    cursor.execute(f"select game_accessToken from games;")
+
+    # return game accessToken
+    response = {
+        "games":[]
+    }
+
+
+# enter game function
+@app.route('/set/room/enter', methods=['GET'])
+@cross_origin()
+@as_json
+@token_checker
+def game_enter():
+    # create a new game
+    cursor.execute(f"select game_token from games;")
+
+
+
+
+    response = {
+        "success": True,
+        "exception": None,
+        "gameId":
+    }
+
+
+
+
+
+
+
+
+
+
 
 
 
