@@ -38,7 +38,7 @@ def find_set(data):
 
 
 # get json from file
-with open('../../Desktop/Computing systems/set/responce.json', 'r') as json_file:
-    data = json.load(json_file)
+#with open('../../Desktop/Computing systems/set/responce.json', 'r') as json_file:
+ #   data = json.load(json_file)
 
-find_set(data)
+#find_set(data)

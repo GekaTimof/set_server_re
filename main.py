@@ -5,7 +5,6 @@ from flask_json import FlaskJSON, as_json
 from flask_cors import CORS, cross_origin
 from flask import Flask, redirect, url_for, request, make_response, send_file, jsonify
 import set
-import decorators
 
 
 app = Flask(__name__)
@@ -19,10 +18,50 @@ app.config['JSON_ADD_STATUS'] = False
 
 
 cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
-                              host='51.250.102.162',
+                              host='84.201.164.226',
                               database='myDatabase')
 cursor = cnx.cursor()
 
+
+def token_checker(func):
+    def wrapper(*args, **kwargs):
+        accessToken = request.args.get('accessToken')
+
+        print(accessToken)
+        # check token
+        cursor.execute(f"select *  from tokens;")
+
+        tokens = None
+        for tokens_arr in cursor:
+            tokens = tokens_arr[0]
+        print(tokens)
+
+        if accessToken in tokens.keys():
+            result =  func(*args, **kwargs)
+        else:
+            raise Exception("accessToken not exist")
+        return result
+
+   wrapper.__name__ = func.__name__
+   return wrapper
+
+
+
+"""def args(func):
+   def wrapper(*args, **kwargs):
+       tokens = ['token123', 'test', 'qwerty']  # массив с токенами
+       token = request.args.get('token')  # получаем токен из запроса
+       if token in tokens:
+           result = func(*args, **kwargs)
+       else:
+           raise AuthError('Пользователь не авторизованн - токен не подошел')# возвращаем данны
+       return result
+
+
+   wrapper.__name__ = func.__name__
+   return wrapper
+
+"""
 
 # registration function
 @app.route('/user/register', methods=['GET'])
@@ -39,17 +78,23 @@ def register():
 
     # get real user password
     realPasswd=None
-    for realPasswd in cursor:
-        realPasswd = realPasswd[0]
+    for realPasswd_arr in cursor:
+        realPasswd = realPasswd_arr[0]
 
     if realPasswd == None:
-        # create user in database
+        # create and save user in database
         cursor.execute(f"INSERT INTO users  (user_login, user_passwd) VALUES ('{nickname}', '{passwd}');")
-        # save data in database
         cnx.commit()
 
-        user_accessToken = uuid.accessToken4()
-        response = {'accessToken': f'{str(user_accessToken)}'}
+        user_accessToken = uuid.uuid4()
+
+        response = {
+            'nickname': f'{str(nickname)}',
+            'accessToken': f'{str(user_accessToken)}'
+        }
+
+        # return response
+        return response, 200
 
     else:
         response = {
@@ -62,8 +107,6 @@ def register():
         return response, 401
 
 
-    # return response
-    return response, 200
 
 
 # logining function
@@ -86,8 +129,13 @@ def login():
 
 
     if realPasswd == passwd:
-        user_accessToken = uuid.accessToken4()
-        response = {'accessToken': f'{str(user_accessToken)}'}
+        user_accessToken = uuid.uuid4()
+        response = {
+            'nickname': f'{str(nickname)}',
+            'accessToken': f'{str(user_accessToken)}'
+        }
+        # return response
+        return response, 200
 
     elif realPasswd == None:
         response = {
@@ -109,6 +157,8 @@ def login():
         return response, 401
 
 
+
+
 # game starting function
 @app.route('/set/room/create', methods=['GET'])
 @cross_origin()
@@ -116,7 +166,7 @@ def login():
 @token_checker
 def game_start():
     # game accessToken
-    game_accessToken = uuid.accessToken4()
+    game_accessToken = uuid.uuid4()
 
     # create a new game
     cursor.execute(f"INSERT INTO games  (game_accessToken) VALUES ('{game_accessToken}');")
@@ -128,6 +178,9 @@ def game_start():
         "gameId": game_accessToken
     }
 
+    return response, 200
+
+'''
 
 # function to get the list of games
 @app.route('/set/room/list', methods=['GET'])
@@ -154,15 +207,13 @@ def game_enter():
     cursor.execute(f"select game_token from games;")
 
 
-
-
     response = {
         "success": True,
         "exception": None,
-        "gameId":
+        "gameId": cursor.fetchone()
     }
 
-
+'''
 
 
 
