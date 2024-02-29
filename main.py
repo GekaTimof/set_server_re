@@ -21,39 +21,50 @@ app.config['JSON_ADD_STATUS'] = False
 
 
 cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
-                              host='158.160.84.91',
-                              database='myDatabase')
+                              host='84.201.165.194',
+                              database='setDatabase')
 cursor = cnx.cursor()
 
 
+def errors(func):
+   def wrapper(*args, **kwargs):
+       try:
+           result = func(*args, **kwargs)
+           print(result)
+       except Exception as err:
+           response = {'error': str(err)}
+           return response, 400
+       return result
+   wrapper.__name__ = func.__name__
+   return wrapper
 
-
-'''def token_checker(func):
+def token_checker(func):
     def wrapper(*args, **kwargs):
         accessToken = request.args.get('accessToken')
 
-        print(accessToken)
         # check token
-        cursor.execute(f"select *  from tokens;")
+        cursor.execute(f"select count(*) from tokens where accessToken = '{accessToken}';")
 
-        tokens = None
-        for tokens_arr in cursor:
-            tokens = tokens_arr[0]
-        print(tokens)
+        token_count = None
+        for token_count_arr in cursor:
+            token_count = token_count_arr[0]
+        print(token_count)
 
-        if accessToken in tokens.keys():
-            result =  func(*args, **kwargs)
+        if token_count and token_count > 0:
+            result = func(*args, **kwargs)
         else:
             raise Exception("accessToken not exist")
+
         return result
 
-   wrapper.__name__ = func.__name__
-   return wrapper'''
+    wrapper.__name__ = func.__name__
+    return wrapper
 
 # registration function
 @app.route('/user/register', methods=['GET'])
 @cross_origin()
 @as_json
+@errors
 def register():
     # check parameters
     nickname = request.args.get('nickname')
@@ -61,16 +72,16 @@ def register():
 
     # get passwd for nickname
     cursor.execute(f"select u.user_passwd  from users u \
-    WHERE u.user_login ='{nickname}';")
+    WHERE u.nickname ='{nickname}';")
 
     # get real user password
-    realPasswd=None
+    realPasswd = None
     for realPasswd_arr in cursor:
         realPasswd = realPasswd_arr[0]
 
     if realPasswd == None:
         # create and save user in database
-        cursor.execute(f"INSERT INTO users  (user_login, user_passwd) VALUES ('{nickname}', '{passwd}');")
+        cursor.execute(f"INSERT INTO users  (nickname, user_passwd) VALUES ('{nickname}', '{passwd}');")
         cnx.commit()
 
         user_accessToken = uuid.uuid4()
@@ -104,6 +115,7 @@ def register():
 @app.route('/user/login', methods=['GET'])
 @cross_origin()
 @as_json
+@errors
 def login():
     # check parameters
     nickname = request.args.get('nickname')
@@ -111,7 +123,7 @@ def login():
 
     # get passwd for nickname
     cursor.execute(f"select u.user_passwd  from users u \
-    WHERE u.user_login ='{nickname}';")
+    WHERE u.nickname ='{nickname}';")
 
     # get real user password
     realPasswd = None
@@ -159,26 +171,25 @@ def login():
 @app.route('/set/room/create', methods=['GET'])
 @cross_origin()
 @as_json
-#@token_checker
+@errors
+@token_checker
 def game_start():
     accessToken = request.args.get('accessToken')
 
     # check token
     cursor.execute(f"select nickname FROM tokens Where token='{accessToken}';")
-
-    nickname = cursor.fetchone()[0]
+    nickname = None
+    for nickname_arr in cursor:
+        nickname = nickname_arr[0]
 
     if nickname:
         # game accessToken
         game_accessToken = uuid.uuid4()
 
         deck = create_deck.create_deck()
-        print(deck)
 
-        field = deck[:1]
-        deck = deck[80:]
-
-        print(type(field), type(deck))
+        field = deck[:12*7-1]
+        deck = deck[12*7:]
 
         # create a new game
         cursor.execute(f"INSERT INTO games (game_accessToken, field, deck, nickname_1, status) Values ('{str(game_accessToken)}', '{str(field)}', '{str(deck)}', '{str(nickname)}', 'starting');")
@@ -207,7 +218,8 @@ def game_start():
 @app.route('/set/room/list', methods=['GET'])
 @cross_origin()
 @as_json
-#@token_checker
+@errors
+@token_checker
 def game_list():
     # create a new game
     cursor.execute(f"select game_accessToken from games where status = 'starting';")
@@ -229,15 +241,20 @@ def game_list():
 @app.route('/set/room/enter', methods=['GET'])
 @cross_origin()
 @as_json
-#@token_checker
+@errors
+@token_checker
+#@game_token_checker
 def game_enter():
     user_token = request.args.get('accessToken')
     gameId = request.args.get('game_accessToken')
 
     cursor.execute(f"select nickname from tokens where token='{user_token}';")
-    nickname = cursor.fetchone()[0]
 
-    cursor.execute(f"insert into games (nickname_2, status) values ('{nickname}','in_play')")
+    nickname = None
+    for nickname_arr in cursor:
+        nickname = nickname_arr[0]
+
+    cursor.execute(f"update games set nickname_2='{nickname}', status='in_play' where game_accessToken = '{gameId}';)")
     cnx.commit()
 
     response = {
