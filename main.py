@@ -42,13 +42,13 @@ def token_checker(func):
         accessToken = request.args.get('accessToken')
 
         # check token
-        cursor.execute(f"select count(*) from tokens where token = '{accessToken}';")
+        cursor.execute(f"select nickname from tokens where token = '{accessToken}';")
 
-        token_count = None
-        for token_count_arr in cursor:
-            token_count = token_count_arr[0]
+        nickname = None
+        for nickname_arr in cursor:
+            nickname = nickname_arr[0]
 
-        if token_count and token_count > 0:
+        if nickname:
             result = func(*args, **kwargs)
         else:
             raise Exception("accessToken not exist")
@@ -58,7 +58,7 @@ def token_checker(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
-def game_token_checker(func):
+"""def game_token_checker(func):
     def wrapper(*args, **kwargs):
         user_token = request.args.get('accessToken')
 
@@ -73,6 +73,50 @@ def game_token_checker(func):
             result = func(*args, **kwargs)
         else:
             raise Exception("game not exist")
+
+        return result
+
+    wrapper.__name__ = func.__name__
+    return wrapper"""
+
+def not_in_game(func):
+    def wrapper(*args, **kwargs):
+        user_token = request.args.get('accessToken')
+
+        cursor.execute(
+            f"select count(*) from games where "
+            f"(token_1 = '{user_token}' or token_2 = '{user_token}') and (status = 'in_play' or status = 'starting');")
+
+        game_count = None
+        for game_count_arr in cursor:
+            game_count = game_count_arr[0]
+
+        if game_count == 0:
+            result = func(*args, **kwargs)
+        else:
+            raise Exception("user already played")
+
+        return result
+
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+def in_game(func):
+    def wrapper(*args, **kwargs):
+        user_token = request.args.get('accessToken')
+
+        cursor.execute(
+            f"select count(*) from games where "
+            f"(token_1 = '{user_token}' or token_2 = '{user_token}') and (status = 'in_play' or status = 'starting');")
+
+        game_count = None
+        for game_count_arr in cursor:
+            game_count = game_count_arr[0]
+
+        if game_count > 0:
+            result = func(*args, **kwargs)
+        else:
+            raise Exception("user not in play")
 
         return result
 
@@ -195,6 +239,7 @@ def login():
 @as_json
 @errors
 @token_checker
+@not_in_game
 def game_start():
     accessToken = request.args.get('accessToken')
 
@@ -209,11 +254,12 @@ def game_start():
 
     deck = create_deck.create_deck()
 
-    field = deck[:12*7-1]
-    deck = deck[12*7:]
+    field = deck[:12*8-1]
+    deck = deck[12*8:]
 
     # create a new game
-    cursor.execute(f"INSERT INTO games (game_accessToken, field, deck, nickname_1, status) Values ('{str(game_accessToken)}', '{str(field)}', '{str(deck)}', '{str(nickname)}', 'starting');")
+    cursor.execute(f"INSERT INTO games (game_accessToken, field, deck, nickname_1, token_1, status) Values "
+                   f"('{str(game_accessToken)}', '{field}', '{deck}', '{nickname}', '{accessToken}' , 'starting');")
     cnx.commit()
 
     # return game accessToken
@@ -255,6 +301,7 @@ def game_list():
 @as_json
 @errors
 @token_checker
+@not_in_game
 def game_enter():
     user_token = request.args.get('accessToken')
     gameId = request.args.get('gameId')
@@ -265,7 +312,8 @@ def game_enter():
     for nickname_arr in cursor:
         nickname = nickname_arr[0]
 
-    cursor.execute(f"update games set nickname_2='{nickname}', status='in_play' where game_accessToken = '{gameId}';)")
+    cursor.execute(f"UPDATE games SET status = 'in_play', token_2 = '{user_token}', nickname_2 = '{nickname}' WHERE "
+                   f"game_accessToken = '{gameId}' LIMIT 1;")
     cnx.commit()
 
     response = {
@@ -282,16 +330,18 @@ def game_enter():
 @as_json
 @errors
 @token_checker
-@game_token_checker
+@in_game
 def game_field():
     user_token = request.args.get('accessToken')
 
     cursor.execute(
-        f"select field,  from games where nickname_1 = '{user_token}' or nickname_2 = '{user_token}';")
+        f"select field, token_1, token_2, score_1, score_2  from games where token_1 = '{user_token}' or token_2 = '{user_token}';")
 
-    field = None
-    for field_arr in cursor:
-        field = field_arr[0]
+    data = cursor.fetchone()
+
+    field = data[0]
+    tokens = data[1:3]
+    scores = data[3:5]
 
     response = {"cards": [],
                  "status": "ongoing",
@@ -299,11 +349,97 @@ def game_field():
 
     for card in field.split('*'):
         id = card.split('.')[0]
-        color = card.split('.')[1].split('')[0]
-        shape = card.split('.')[1].split('')[1]
-        fill = card.split('.')[1].split('')[2]
-        count = card.split('.')[1].split('')[3]
+        color = card.split('.')[1][0]
+        shape = card.split('.')[1][1]
+        fill = card.split('.')[1][2]
+        count = card.split('.')[1][3]
         response["cards"].append({"id": id, "color": color, "shape": shape, "fill": fill, "count": count})
+
+
+    if tokens[0] == user_token:
+        response["score"] = scores[0]
+    else:
+        response["score"] = scores[1]
+
+
+    if len(response["cards"]) == 0:
+        response["status"] = "finished"
+
+    return response, 200
+
+@app.route('/set/pick', methods=['GET'])
+@cross_origin()
+@as_json
+@errors
+@token_checker
+@in_game
+def pick_card():
+    user_token = request.args.get('accessToken')
+
+    cards = request.args.get('cards').split("*")
+    for i, card in enumerate(cards):
+        if len(card) == 1:
+            cards[i] = "0" + cards[i]
+
+    cursor.execute(
+        f"select field, deck, token_1, token_2, score_1, score_2  from games "
+        f"where token_1 = '{user_token}' or token_2 = '{user_token}';")
+
+    data = cursor.fetchone()
+    field = data[0]
+    deck = data[1]
+    tokens = data[2:4]
+    scores = data[4:6]
+
+    is_set = True
+    set = []
+    set_re = []
+    for card in field.split("*"):
+        if card.split(".")[0] in cards:
+            set.append(card.split(".")[1])
+            set_re.append(card)
+
+    if len(set) > 0:
+        for i in range(len(set[0])):
+            if not ((set[0][i] == set[1][i] and set[1][i] == set[2][i]) or int(set[0][i]) + int(set[1][i]) + int(set[2][i]) == 6):
+                is_set = False
+    else:
+        raise Exception("cards not exist")
+
+
+    if tokens[0] == user_token:
+        score = scores[0]
+        player = 0
+    else:
+        score = scores[1]
+        player = 1
+
+    deck_re = deck.split("*")
+    field_re = []
+    if is_set == True:
+        for re in field.split("*"):
+            if re in set_re:
+                field_re.append(deck_re.pop())
+            else:
+                field_re.append(re)
+
+        score = int(score) + 1
+
+        if player == 0:
+            cursor.execute(
+                f"UPDATE games SET field = '{'*'.join(field_re)}', deck = '{'*'.join(deck_re)}', score_1 = '{score}' "
+                f"where token_1 = '{user_token}';")
+        else:
+            cursor.execute(
+                f"UPDATE games SET field = '{'*'.join(field_re)}', deck = '{'*'.join(deck_re)}', score_2 = '{score}' "
+                f"where token_2 = '{user_token}';")
+        cnx.commit()
+
+
+    response = {
+        "is_set": is_set,
+        "score": score
+    }
 
     return response, 200
 
