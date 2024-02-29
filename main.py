@@ -19,7 +19,6 @@ app.config['JSON_AS_ASCII'] = False
 app.config['JSON_ADD_STATUS'] = False
 
 
-
 cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
                               host='84.201.165.194',
                               database='setDatabase')
@@ -43,12 +42,11 @@ def token_checker(func):
         accessToken = request.args.get('accessToken')
 
         # check token
-        cursor.execute(f"select count(*) from tokens where accessToken = '{accessToken}';")
+        cursor.execute(f"select count(*) from tokens where token = '{accessToken}';")
 
         token_count = None
         for token_count_arr in cursor:
             token_count = token_count_arr[0]
-        print(token_count)
 
         if token_count and token_count > 0:
             result = func(*args, **kwargs)
@@ -59,6 +57,30 @@ def token_checker(func):
 
     wrapper.__name__ = func.__name__
     return wrapper
+
+def game_token_checker(func):
+    def wrapper(*args, **kwargs):
+        user_token = request.args.get('accessToken')
+
+        cursor.execute(
+            f"select game_accessToken from games where nickname_1 = '{user_token}' or nickname_2 = '{user_token}';")
+
+        game_token = None
+        for game_token_arr in cursor:
+            game_token = game_token_arr[0]
+
+        if game_token:
+            result = func(*args, **kwargs)
+        else:
+            raise Exception("game not exist")
+
+        return result
+
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+
+
 
 # registration function
 @app.route('/user/register', methods=['GET'])
@@ -182,36 +204,26 @@ def game_start():
     for nickname_arr in cursor:
         nickname = nickname_arr[0]
 
-    if nickname:
-        # game accessToken
-        game_accessToken = uuid.uuid4()
+    # game accessToken
+    game_accessToken = uuid.uuid4()
 
-        deck = create_deck.create_deck()
+    deck = create_deck.create_deck()
 
-        field = deck[:12*7-1]
-        deck = deck[12*7:]
+    field = deck[:12*7-1]
+    deck = deck[12*7:]
 
-        # create a new game
-        cursor.execute(f"INSERT INTO games (game_accessToken, field, deck, nickname_1, status) Values ('{str(game_accessToken)}', '{str(field)}', '{str(deck)}', '{str(nickname)}', 'starting');")
-        cnx.commit()
+    # create a new game
+    cursor.execute(f"INSERT INTO games (game_accessToken, field, deck, nickname_1, status) Values ('{str(game_accessToken)}', '{str(field)}', '{str(deck)}', '{str(nickname)}', 'starting');")
+    cnx.commit()
 
-        # return game accessToken
-        response = {
-            "success": True,
-            "exception": None,
-            "gameId": game_accessToken
-        }
+    # return game accessToken
+    response = {
+        "success": True,
+        "exception": None,
+        "gameId": game_accessToken
+    }
 
-        return response, 200
-    else:
-        response = {
-            "success": False,
-            "exception": {
-                "message": "false token"
-            }
-        }
-        # return response
-        return response, 401
+    return response, 200
 
 
 # function to get the list of games
@@ -243,10 +255,9 @@ def game_list():
 @as_json
 @errors
 @token_checker
-#@game_token_checker
 def game_enter():
     user_token = request.args.get('accessToken')
-    gameId = request.args.get('game_accessToken')
+    gameId = request.args.get('gameId')
 
     cursor.execute(f"select nickname from tokens where token='{user_token}';")
 
@@ -262,6 +273,37 @@ def game_enter():
         "exception": None,
         "gameId": gameId
     }
+
+    return response, 200
+
+
+@app.route('/set/field', methods=['GET'])
+@cross_origin()
+@as_json
+@errors
+@token_checker
+@game_token_checker
+def game_field():
+    user_token = request.args.get('accessToken')
+
+    cursor.execute(
+        f"select field,  from games where nickname_1 = '{user_token}' or nickname_2 = '{user_token}';")
+
+    field = None
+    for field_arr in cursor:
+        field = field_arr[0]
+
+    response = {"cards": [],
+                 "status": "ongoing",
+                 "score": 0 }
+
+    for card in field.split('*'):
+        id = card.split('.')[0]
+        color = card.split('.')[1].split('')[0]
+        shape = card.split('.')[1].split('')[1]
+        fill = card.split('.')[1].split('')[2]
+        count = card.split('.')[1].split('')[3]
+        response["cards"].append({"id": id, "color": color, "shape": shape, "fill": fill, "count": count})
 
     return response, 200
 
