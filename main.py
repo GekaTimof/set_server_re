@@ -20,7 +20,7 @@ app.config['JSON_ADD_STATUS'] = False
 
 
 cnx = mysql.connector.connect(user='user', password='6re7u89uj.mljl',
-                              host='84.201.165.194',
+                              host='158.160.10.161',
                               database='setDatabase')
 cursor = cnx.cursor()
 
@@ -58,26 +58,6 @@ def token_checker(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
-"""def game_token_checker(func):
-    def wrapper(*args, **kwargs):
-        user_token = request.args.get('accessToken')
-
-        cursor.execute(
-            f"select game_accessToken from games where nickname_1 = '{user_token}' or nickname_2 = '{user_token}';")
-
-        game_token = None
-        for game_token_arr in cursor:
-            game_token = game_token_arr[0]
-
-        if game_token:
-            result = func(*args, **kwargs)
-        else:
-            raise Exception("game not exist")
-
-        return result
-
-    wrapper.__name__ = func.__name__
-    return wrapper"""
 
 def not_in_game(func):
     def wrapper(*args, **kwargs):
@@ -85,7 +65,7 @@ def not_in_game(func):
 
         cursor.execute(
             f"select count(*) from games where "
-            f"(token_1 = '{user_token}' or token_2 = '{user_token}') and (status = 'in_play' or status = 'starting');")
+            f"(token_1 = '{user_token}' or token_2 = '{user_token}') and (status = 'ongoing' or status = 'starting');")
 
         game_count = None
         for game_count_arr in cursor:
@@ -107,7 +87,7 @@ def in_game(func):
 
         cursor.execute(
             f"select count(*) from games where "
-            f"(token_1 = '{user_token}' or token_2 = '{user_token}') and (status = 'in_play' or status = 'starting');")
+            f"(token_1 = '{user_token}' or token_2 = '{user_token}') and (status = 'ongoing' or status = 'starting');")
 
         game_count = None
         for game_count_arr in cursor:
@@ -419,7 +399,8 @@ def pick_card():
     if is_set == True:
         for re in field.split("*"):
             if re in set_re:
-                field_re.append(deck_re.pop())
+                if len(field.split("*")) == 12:
+                    field_re.append(deck_re.pop())
             else:
                 field_re.append(re)
 
@@ -435,13 +416,81 @@ def pick_card():
                 f"where token_2 = '{user_token}';")
         cnx.commit()
 
-
     response = {
         "is_set": is_set,
         "score": score
     }
-
     return response, 200
+
+
+@app.route('/set/add', methods=['GET'])
+@cross_origin()
+@as_json
+@errors
+@token_checker
+@in_game
+def add_card():
+    user_token = request.args.get('accessToken')
+
+    cursor.execute(
+        f"select field, deck from games "
+        f"where token_1 = '{user_token}' or token_2 = '{user_token}';")
+
+    data = cursor.fetchone()
+    field = data[0]
+    deck = data[1]
+
+    if len(field.split("*")) == 12 and len(deck.split("*")) >= 3:
+        field_re = "*".join(field.split("*") + deck.split("*")[0:4])
+        deck_re = "*".join(deck.split("*")[4:])
+
+        # create a new game
+        cursor.execute(f" update games set field = '{field_re}', deck = '{deck_re}' "
+                       f"where token_1 = '{user_token}' or token_2 = '{user_token}' ;")
+        cnx.commit()
+    else:
+        raise Exception("not possible to add card")
+
+    response = {
+        "success": True,
+        "exception": None
+    }
+    return response, 200
+
+@app.route('/set/scores', methods=['GET'])
+@cross_origin()
+@as_json
+@errors
+@token_checker
+@in_game
+def scores():
+    user_token = request.args.get('accessToken')
+
+    cursor.execute(
+        f"select nickname_1, nickname_2, score_1, score_2  from games "
+        f"where token_1 = '{user_token}' or token_2 = '{user_token}';")
+
+    data = cursor.fetchone()
+    names = data[0:2]
+    scores = data[2:4]
+
+    response = {
+                "success": True,
+                "exception": None,
+                "users": [
+                    {
+                        "name": names[0],
+                        "score": scores[0]
+                    },
+                    {
+                        "name": names[1],
+                        "score": scores[1]
+                    }
+                ]
+            }
+    return response, 200
+
+
 
 
 

@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="081f762f-9f75-46d9-8f5e-e079b2003740" name="Changes" comment="game part">
+    <list default="true" id="081f762f-9f75-46d9-8f5e-e079b2003740" name="Changes" comment="finish with pick_card">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -100,7 +100,9 @@
       <workItem from="1709125339484" duration="17933000" />
       <workItem from="1709184262945" duration="3305000" />
       <workItem from="1709188414980" duration="10218000" />
-      <workItem from="1709202250276" duration="12998000" />
+      <workItem from="1709202250276" duration="13044000" />
+      <workItem from="1709269960582" duration="33000" />
+      <workItem from="1709273699191" duration="2278000" />
     </task>
     <task id="LOCAL-00001" summary="1">
       <option name="closed" value="true" />
@@ -174,7 +176,15 @@
       <option name="project" value="LOCAL" />
       <updated>1709199952310</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="finish with pick_card">
+      <option name="closed" value="true" />
+      <created>1709226396857</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1709226396857</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -186,12 +196,13 @@
     <MESSAGE value="game function" />
     <MESSAGE value="try to set errors" />
     <MESSAGE value="game part" />
-    <option name="LAST_COMMIT_MESSAGE" value="game part" />
+    <MESSAGE value="finish with pick_card" />
+    <option name="LAST_COMMIT_MESSAGE" value="finish with pick_card" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/set_server$set.coverage" NAME="set Coverage Results" MODIFIED="1709032293387" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/set_server$create_deck.coverage" NAME="create_deck Coverage Results" MODIFIED="1709185011005" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/set_server$m.coverage" NAME="m Coverage Results" MODIFIED="1709027364613" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/set_server$main.coverage" NAME="main Coverage Results" MODIFIED="1709226354451" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/set_server$main.coverage" NAME="main Coverage Results" MODIFIED="1709275873147" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
