@@ -105,7 +105,6 @@ def in_game(func):
 
 
 
-
 # registration function
 @app.route('/user/register', methods=['GET'])
 @cross_origin()
