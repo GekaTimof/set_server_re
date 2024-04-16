@@ -4,13 +4,13 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(
-   name='set_server',
+   name='set_server_re',
    version='1.0',
    description='server for set game. ',
    license='MIT',
    author='Timofeev Evgeniy',
    author_email='geka.timof@mail.ru',
-   url='https://github.com/GekaTimof/set_server',
+   url='https://github.com/GekaTimof/set_server_re',
    packages=['server_part'],
    install_requires=requirements,
    extras_require={
