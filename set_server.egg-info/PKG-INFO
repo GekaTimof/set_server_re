@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: set-server
+Version: 1.0
+Summary: server for set game. 
+Home-page: https://github.com/GekaTimof/set_server
+Author: Timofeev Evgeniy
+Author-email: geka.timof@mail.ru
+License: MIT
+Requires-Python: >=3
+Provides-Extra: test
+License-File: LICENSE
