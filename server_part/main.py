@@ -1,5 +1,5 @@
 import json
-import create_deck
+from server_part import create_deck
 from functools import reduce
 from random import shuffle
 import uuid
